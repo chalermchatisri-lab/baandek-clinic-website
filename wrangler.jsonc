@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "baandek-clinic",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    // html_handling defaults to "auto-trailing-slash", which strips ".html" and 302/307
+    // redirects to the extensionless URL. That breaks Google Search Console's HTML
+    // site-verification file (/google1963208a35d18c9a.html), which must return 200
+    // directly with no redirect. No page on this site relies on the default pretty-URL
+    // behavior (the rest is Next.js SSR, not static .html), so "none" is safe site-wide.
+    "html_handling": "none",
+    "binding": "ASSETS"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+  // IMPORTANT: this env.preview block only takes effect if CLOUDFLARE_ENV=preview is set
+  // BEFORE running `npm run build` — the Cloudflare Vite plugin resolves the environment
+  // at build time, not at `wrangler deploy` time. `wrangler deploy --env preview` alone,
+  // after a plain build, silently deploys to production instead. See README.md.
+  "env": {
+    "preview": {
+      "name": "baandek-clinic-preview"
+    }
+  }
+}

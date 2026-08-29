@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.wrangler/
+.vinext/
+.sites-runtime/
+.openai/
+*.tsbuildinfo
+wrangler-out.log
+npm-debug.log*
+.DS_Store
+
+# Old pre-Next.js export, not part of the current source tree
+BAANDEK_Clinic_Landing_Page_V2.zip
