@@ -14,7 +14,7 @@ type HoursGroup = { label: string; text: string };
 
 type TeamMember = { Name?: string; Role?: string; Photo_URL?: string; Credentials?: string; Order?: number };
 type Service = { Title?: string; Description?: string; Icon?: string; Order?: number; Active?: boolean | string };
-type Article = { Title?: string; Category?: string; Cover_Image_URL?: string; Content_Type?: string; Panel_Images_Folder?: string; Published?: boolean | string; Body_Content?: string };
+type Article = { Title?: string; Category?: string; Cover_Image_URL?: string; Content_Type?: string; Panel_Images_Folder?: string; Panel_Count?: number; Panel_Ext?: string; Published?: boolean | string; Body_Content?: string };
 type Review = { Source?: string; Reviewer_Name?: string; Text?: string; Rating?: number; ReviewCount?: number; Screenshot_URL?: string; Permission_Confirmed?: boolean | string };
 type Promotion = { Title?: string; Description?: string; Image_URL?: string; Start_Date?: string; End_Date?: string; Active?: boolean | string };
 type VaccineNewsRow = { VaccineName?: string; StartDate?: string; EndDate?: string; Status?: boolean | string; Description?: string };

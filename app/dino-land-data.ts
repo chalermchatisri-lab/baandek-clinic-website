@@ -26,10 +26,10 @@ export type DinoLandEpisode = {
 
 const PANELS_PER_EPISODE = 9;
 
-function buildPanels(folder: string, count: number): DinoLandPanel[] {
+function buildPanels(folder: string, count: number, ext: string = "png"): DinoLandPanel[] {
   return Array.from({ length: count }, (_, i) => ({
     index: i + 1,
-    image: `${folder}/panel-${String(i + 1).padStart(2, "0")}.png`,
+    image: `${folder}/panel-${String(i + 1).padStart(2, "0")}.${ext}`,
   }));
 }
 
@@ -62,6 +62,8 @@ export type ArticleRow = {
   Category?: string;
   Content_Type?: string;
   Panel_Images_Folder?: string;
+  Panel_Count?: number;
+  Panel_Ext?: string;
 };
 
 /**
@@ -83,6 +85,10 @@ export function buildEpisodesFromArticles(articles: ArticleRow[]): DinoLandEpiso
     order: i + 1,
     title: row.Title || `ตอนที่ ${i + 1}`,
     subtitle: row.Category || `ตอนที่ ${i + 1}`,
-    panels: buildPanels(row.Panel_Images_Folder as string, PANELS_PER_EPISODE),
+    panels: buildPanels(
+      row.Panel_Images_Folder as string,
+      row.Panel_Count ?? PANELS_PER_EPISODE,
+      row.Panel_Ext ?? "png"
+    ),
   }));
 }
