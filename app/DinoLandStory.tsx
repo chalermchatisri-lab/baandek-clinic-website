@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { DinoLandEpisode } from "./dino-land-data";
+import type { DinoLandEpisode, SeriesHeading } from "./dino-land-data";
 
-// UI สำหรับคอมมิค "Dinosaur Land" — เลือกตอนจากการ์ดในส่วนความรู้ แล้วเข้าโหมด Story
-// (แบบ Instagram/TikTok: progress bar ด้านบน, แตะซ้าย/ขวาเลื่อนช่อง)
+// UI สำหรับคอมมิคแบบ Story (แบบ Instagram/TikTok: progress bar ด้านบน, แตะซ้าย/ขวาเลื่อนช่อง)
+// ใช้ซ้ำได้กับหลายซีรีส์ — แต่ละซีรีส์ต้อง render เป็นคนละ instance ของ component นี้
+// (episodes ที่ส่งเข้ามาต้องเป็นของซีรีส์เดียวเท่านั้น ไม่งั้นปุ่ม "ตอนต่อไป" จะปนข้ามซีรีส์)
 // ข้อมูล (path รูป/ชื่อตอน) มาจาก dino-land-data.ts ทั้งหมด — ไฟล์นี้จัดการแค่ UI/state
 
-export default function DinoLandStory({ episodes }: { episodes: DinoLandEpisode[] }) {
+const DEFAULT_HEADING: SeriesHeading = {
+  pill: "คอมมิคความรู้",
+  title: "Baandek Channel: ผจญภัยเอาชนะโรต้าไวรัส",
+  description: "อ่านแบบ Story — แตะเลือกตอน แล้วปัดดูทีละช่องได้เลย",
+};
+
+export default function DinoLandStory({
+  episodes,
+  heading = DEFAULT_HEADING,
+}: {
+  episodes: DinoLandEpisode[];
+  heading?: SeriesHeading;
+}) {
   const [openEpisodeId, setOpenEpisodeId] = useState<string | null>(null);
   const [panelIdx, setPanelIdx] = useState(0);
   const [showEndScreen, setShowEndScreen] = useState(false);
@@ -61,9 +74,9 @@ export default function DinoLandStory({ episodes }: { episodes: DinoLandEpisode[
     <>
       <div className="v2-dino-comic">
         <div className="v2-dino-comic-head">
-          <span className="v2-pill">คอมมิคความรู้</span>
-          <h3>Baandek Channel: ผจญภัยเอาชนะโรต้าไวรัส</h3>
-          <p>อ่านแบบ Story — แตะเลือกตอน แล้วปัดดูทีละช่องได้เลย</p>
+          <span className="v2-pill">{heading.pill}</span>
+          <h3>{heading.title}</h3>
+          <p>{heading.description}</p>
         </div>
         <div className="v2-dino-comic-eps">
           {episodes.map((ep) => (

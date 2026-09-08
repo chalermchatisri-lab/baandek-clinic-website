@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DinoLandStory from "./DinoLandStory";
-import { buildEpisodesFromArticles } from "./dino-land-data";
+import { buildEpisodeSeriesFromArticles } from "./dino-land-data";
 import InfographicGallery, { buildInfographicsFromArticles } from "./InfographicGallery";
 import VideoCards, { buildVideosFromArticles } from "./VideoCards";
 import ArticleModal, { buildArticlesFromRows } from "./ArticleModal";
@@ -14,7 +14,7 @@ type HoursGroup = { label: string; text: string };
 
 type TeamMember = { Name?: string; Role?: string; Photo_URL?: string; Credentials?: string; Order?: number };
 type Service = { Title?: string; Description?: string; Icon?: string; Order?: number; Active?: boolean | string };
-type Article = { Title?: string; Category?: string; Cover_Image_URL?: string; Content_Type?: string; Panel_Images_Folder?: string; Panel_Count?: number; Panel_Ext?: string; Published?: boolean | string; Body_Content?: string };
+type Article = { Title?: string; Category?: string; Cover_Image_URL?: string; Content_Type?: string; Panel_Images_Folder?: string; Panel_Count?: number; Panel_Ext?: string; Series_Slug?: string; Published?: boolean | string; Body_Content?: string };
 type Review = { Source?: string; Reviewer_Name?: string; Text?: string; Rating?: number; ReviewCount?: number; Screenshot_URL?: string; Permission_Confirmed?: boolean | string };
 type Promotion = { Title?: string; Description?: string; Image_URL?: string; Start_Date?: string; End_Date?: string; Active?: boolean | string };
 type VaccineNewsRow = { VaccineName?: string; StartDate?: string; EndDate?: string; Status?: boolean | string; Description?: string };
@@ -232,7 +232,9 @@ export default function Home() {
       <div className="v2-advisor-art"><img src="/mascot/mina-reading.png" alt="มาสคอตมีนากำลังอ่านหนังสือ Healthy Kids"/></div><div><span className="v2-pill dark">BAANDEK VACCINE ADVISOR</span><h2>เช็กวัคซีนตามวัย<br/>ได้ใน 10 วินาที</h2><p>เลือกอายุของน้อง ดูวัคซีนที่ควรได้รับ วัคซีนทางเลือก และราคาเบื้องต้นก่อนปรึกษากุมารแพทย์</p><ul><li>เลือกอายุได้ง่ายบนมือถือ</li><li>ดูวัคซีนและราคาในหน้าเดียว</li><li>ข้อมูลเชื่อมกับระบบของคลินิก</li></ul><a className="v2-btn solid" href={link("VACCINE_ADVISOR")} target="_blank" rel="noreferrer">เริ่มเช็กวัคซีน</a></div>
     </section>
 
-    <section className="v2-knowledge" id="knowledge">{content.vaccineNews.length > 0 && <VaccineNewsCards items={buildVaccineNewsFromRows(content.vaccineNews)} />}<DinoLandStory episodes={buildEpisodesFromArticles(content.articles)} /><InfographicGallery items={buildInfographicsFromArticles(content.articles)} /><VideoCards items={buildVideosFromArticles(content.articles)} /><div className="v2-section-head"><span>ความรู้สำหรับครอบครัว</span><h2>อ่านง่าย ใช้ได้จริง<br/>จากคลินิกบ้านเด็ก</h2></div><ArticleModal items={buildArticlesFromRows(content.articles)} />{content.articles.filter(a => !["comic-story", "infographic", "video", "article"].includes(a.Content_Type || "")).length > 0 && <div className="v2-article-grid">{content.articles.filter(a => !["comic-story", "infographic", "video", "article"].includes(a.Content_Type || "")).map((article, i) => (
+    <section className="v2-knowledge" id="knowledge">{content.vaccineNews.length > 0 && <VaccineNewsCards items={buildVaccineNewsFromRows(content.vaccineNews)} />}{buildEpisodeSeriesFromArticles(content.articles).map((series) => (
+      <DinoLandStory key={series.slug} episodes={series.episodes} heading={series.heading} />
+    ))}<InfographicGallery items={buildInfographicsFromArticles(content.articles)} /><VideoCards items={buildVideosFromArticles(content.articles)} /><div className="v2-section-head"><span>ความรู้สำหรับครอบครัว</span><h2>อ่านง่าย ใช้ได้จริง<br/>จากคลินิกบ้านเด็ก</h2></div><ArticleModal items={buildArticlesFromRows(content.articles)} />{content.articles.filter(a => !["comic-story", "infographic", "video", "article"].includes(a.Content_Type || "")).length > 0 && <div className="v2-article-grid">{content.articles.filter(a => !["comic-story", "infographic", "video", "article"].includes(a.Content_Type || "")).map((article, i) => (
       <article key={`${article.Title}-${i}`}>
         {article.Cover_Image_URL && <img src={article.Cover_Image_URL} alt={article.Title || ""}/>}
         <span>{article.Category}</span>

@@ -1,10 +1,10 @@
-// ข้อมูลคอมมิค "Dinosaur Land" — ตอนนี้ metadata ต่อตอน (ชื่อ/โฟลเดอร์รูป) ย้ายไปอยู่ใน
-// ชีต ARTICLES แล้ว (Content_Type="comic-story") ไฟล์นี้เก็บแค่:
-// 1. DINO_LAND_EPISODES — fallback เผื่อดึงจากชีตไม่สำเร็จ/ยังโหลดไม่เสร็จ
-// 2. buildEpisodesFromArticles — แปลงแถว ARTICLES จากชีตให้เป็นรูปแบบที่ DinoLandStory ใช้
-// จำนวนช่อง (9 ช่อง/ตอน) และชื่อไฟล์ panel-01..09.png ยังเป็นค่าคงที่ในโค้ด เพราะผูกกับ
-// ไฟล์รูปจริงที่ deploy ไว้แล้วบน /public — เพิ่มช่องใหม่ต้องอัปโหลดไฟล์ + แก้โค้ดอยู่ดี
-// ไม่ต่างจากการแก้ข้อความอื่น ๆ ที่ดึงจากชีตได้เลย
+// ข้อมูลคอมมิค — metadata ต่อตอน (ชื่อ/โฟลเดอร์รูป) มาจากตาราง articles
+// (content_type="comic-story") ไฟล์นี้เก็บแค่:
+// 1. DINO_LAND_EPISODES — fallback เผื่อดึงข้อมูลไม่สำเร็จ/ยังโหลดไม่เสร็จ
+// 2. buildEpisodeSeriesFromArticles — แปลงแถว articles ให้เป็น "ซีรีส์" หลายชุด
+//    จัดกลุ่มด้วย series_slug เพื่อไม่ให้ปุ่ม "ตอนต่อไป"/carousel ปนข้ามซีรีส์กัน
+//    (บั๊กที่เจอจริง: เอา comic-story ทุกแถวมาเรียงรวมเป็นเส้นเดียวตาม start_date เดิม —
+//    พอมีซีรีส์ที่ 2 เพิ่มเข้ามา ลำดับตอนก็ปนกันมั่ว)
 
 export type DinoLandPanel = {
   /** ลำดับช่อง เริ่มที่ 1 */
@@ -22,6 +22,35 @@ export type DinoLandEpisode = {
   title: string;
   subtitle: string;
   panels: DinoLandPanel[];
+};
+
+export type SeriesHeading = {
+  pill: string;
+  title: string;
+  description: string;
+};
+
+export type ComicSeries = {
+  slug: string;
+  heading: SeriesHeading;
+  episodes: DinoLandEpisode[];
+};
+
+const DEFAULT_HEADING: SeriesHeading = {
+  pill: "คอมมิคความรู้",
+  title: "Baandek Channel: ผจญภัยเอาชนะโรต้าไวรัส",
+  description: "อ่านแบบ Story — แตะเลือกตอน แล้วปัดดูทีละช่องได้เลย",
+};
+
+// ข้อความหัวเรื่อง/คำโปรยต่อซีรีส์ — เป็นข้อความ UI ล้วน ๆ ไม่ใช่ตรรกะทางการแพทย์
+// จึงเก็บเป็น map ในโค้ดได้ (ต่างจาก vaccine_rules ที่ต้องเป็น data)
+const SERIES_HEADINGS: Record<string, SeriesHeading> = {
+  "dino-land": DEFAULT_HEADING,
+  "infection-precautions": {
+    pill: "คอมมิคความรู้",
+    title: "Baandek Channel: ป้องกันการติดเชื้อ",
+    description: "อ่านแบบ Story — แตะเลือกตอน แล้วปัดดูทีละช่องได้เลย",
+  },
 };
 
 const PANELS_PER_EPISODE = 9;
@@ -64,31 +93,54 @@ export type ArticleRow = {
   Panel_Images_Folder?: string;
   Panel_Count?: number;
   Panel_Ext?: string;
+  Series_Slug?: string;
+  Start_Date?: string;
 };
 
 /**
- * แปลงแถว ARTICLES ที่ Content_Type === "comic-story" ให้เป็น DinoLandEpisode[]
- * ลำดับตอนอิงจากลำดับแถวในชีต (ARTICLES ไม่มีคอลัมน์ Order)
+ * แปลงแถว articles ที่ Content_Type === "comic-story" ให้เป็นซีรีส์หลายชุด
+ * จัดกลุ่มด้วย Series_Slug — แต่ละซีรีส์มี carousel/ปุ่ม "ตอนต่อไป" เป็นของตัวเอง
+ * ไม่ปนกับซีรีส์อื่น (ลำดับตอนภายในซีรีส์เดียวกันอิงลำดับแถวที่ backend
+ * เรียงมาให้แล้วด้วย priority/start_date)
  * ถ้ายังไม่มีแถว comic-story เลย (เช่น fetch ยังไม่เสร็จ/ล้มเหลว) ใช้ fallback เดิม
  */
-export function buildEpisodesFromArticles(articles: ArticleRow[]): DinoLandEpisode[] {
+export function buildEpisodeSeriesFromArticles(articles: ArticleRow[]): ComicSeries[] {
   const comicRows = articles.filter(
-    (row) => row.Content_Type === "comic-story" && row.Panel_Images_Folder
+    (row) => row.Content_Type === "comic-story" && row.Panel_Images_Folder && row.Series_Slug
   );
 
   if (comicRows.length === 0) {
-    return DINO_LAND_EPISODES;
+    return [{ slug: "dino-land", heading: DEFAULT_HEADING, episodes: DINO_LAND_EPISODES }];
   }
 
-  return comicRows.map((row, i) => ({
-    id: `ep${i + 1}`,
-    order: i + 1,
-    title: row.Title || `ตอนที่ ${i + 1}`,
-    subtitle: row.Category || `ตอนที่ ${i + 1}`,
-    panels: buildPanels(
-      row.Panel_Images_Folder as string,
-      row.Panel_Count ?? PANELS_PER_EPISODE,
-      row.Panel_Ext ?? "png"
-    ),
+  const rowsBySlug = new Map<string, ArticleRow[]>();
+  for (const row of comicRows) {
+    const slug = row.Series_Slug as string;
+    const bucket = rowsBySlug.get(slug);
+    if (bucket) bucket.push(row);
+    else rowsBySlug.set(slug, [row]);
+  }
+
+  // แถวที่ backend ส่งมาเรียงแบบ "feed ล่าสุดก่อน" (start_date DESC) เพื่อใช้กับ
+  // การ์ดข่าว/infographic — แต่ลำดับตอนในคอมมิคต้องอ่านเก่าสุดก่อน (EP1 ก่อน EP2)
+  // จึงต้องเรียงใหม่จากน้อยไปมากเฉพาะภายในซีรีส์นี้ ไม่งั้น "ตอนต่อไป" จะย้อนลำดับ
+  for (const rows of rowsBySlug.values()) {
+    rows.sort((a, b) => (a.Start_Date ?? "").localeCompare(b.Start_Date ?? ""));
+  }
+
+  return Array.from(rowsBySlug.entries()).map(([slug, rows]) => ({
+    slug,
+    heading: SERIES_HEADINGS[slug] ?? DEFAULT_HEADING,
+    episodes: rows.map((row, i) => ({
+      id: `ep${i + 1}`,
+      order: i + 1,
+      title: row.Title || `ตอนที่ ${i + 1}`,
+      subtitle: row.Category || `ตอนที่ ${i + 1}`,
+      panels: buildPanels(
+        row.Panel_Images_Folder as string,
+        row.Panel_Count ?? PANELS_PER_EPISODE,
+        row.Panel_Ext ?? "png"
+      ),
+    })),
   }));
 }
