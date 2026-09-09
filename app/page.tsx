@@ -7,6 +7,8 @@ import InfographicGallery, { buildInfographicsFromArticles } from "./Infographic
 import VideoCards, { buildVideosFromArticles } from "./VideoCards";
 import ArticleModal, { buildArticlesFromRows } from "./ArticleModal";
 import VaccineNewsCards, { buildVaccineNewsFromRows } from "./VaccineNewsCard";
+import { FALLBACK_LINKS, CONTENT_API_URL, formatPhone, fetchJsonWithRetry } from "./lib/links";
+import { getWeeklyMinaPose } from "./lib/mina";
 
 type ClinicStatus = { open: boolean; label: string; detail: string; source: string };
 type DayHours = { day: string; sessions: { open: string; close: string }[] };
@@ -21,49 +23,6 @@ type VaccineNewsRow = { VaccineName?: string; StartDate?: string; EndDate?: stri
 type ContentData = { team: TeamMember[]; services: Service[]; articles: Article[]; reviews: Review[]; promotions: Promotion[]; vaccineNews: VaccineNewsRow[]; links: Record<string, string> };
 
 const emptyContentData: ContentData = { team: [], services: [], articles: [], reviews: [], promotions: [], vaccineNews: [], links: {} };
-
-// ลิงก์สำรอง ใช้เฉพาะช่วงที่ยังโหลด content-data ไม่เสร็จ หรือโหลดไม่สำเร็จเท่านั้น —
-// ค่าจริงมาจากชีต LINKS ผ่าน content-data (runtime) เพื่อให้แก้ที่ชีตที่เดียวแล้วมีผลทันที
-// ทั้ง Landing Page / LINE OA / Messenger โดยไม่ต้อง build+deploy เว็บใหม่
-// (เดิม 2 ลิงก์นี้ hardcode ไว้ในไฟล์นี้ ทำให้แก้ชีตแล้วหน้าเว็บไม่เปลี่ยน — พบ 2026-08-09)
-const FALLBACK_LINKS: Record<string, string> = {
-  VACCINE_ADVISOR: "https://baandek-line-worker.baandek-clinic.workers.dev/vaccine-advisor",
-  GOOGLE_MAPS: "https://bit.ly/baandek-map",
-  PHONE: "0850659715",
-  FACEBOOK_PAGE: "BaanDekClinic",
-  LINE_OA: "@739fjvrr",
-  ADDRESS: "41, 59 ถนนกาญจนวิถี ตำบลบางกุ้ง อำเภอเมืองสุราษฎร์ธานี 84000",
-};
-
-/** "0850659715" -> "085-065-9715" (format เดียวกับที่บอทใช้ในข้อความ) */
-function formatPhone(raw: string): string {
-  let d = String(raw || "").replace(/\D/g, "");
-  if (d.length === 11 && d.startsWith("66")) d = "0" + d.slice(2);
-  // Sheets ตัด 0 นำหน้าทิ้งได้ถ้าเซลล์ไม่ได้เป็นข้อความล้วน — เติมคืนเองกันพลาด
-  if (d.length === 9) d = "0" + d;
-  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : d;
-}
-const CONTENT_API_URL = "https://baandek-clinic.onrender.com/public/content-data";
-
-const MINA_EYES_OPEN = "https://lh3.googleusercontent.com/d/15AAWrAEPwQTCEUTqP9hEFijukKeeaNlH";
-const MINA_EYES_CLOSED = "https://lh3.googleusercontent.com/d/1hVl0DCQ0yUIxX3sWgMv1_C3Zjmu8y6cE";
-
-// Apps Script exec URL บางครั้ง fetch ล้มเหลวแบบสุ่ม (network flaky ไม่เกี่ยวกับข้อมูล) —
-// ลองใหม่อีกไม่กี่ครั้งก่อนยอมแพ้ กัน section ทั้งหมดหายไปเฉย ๆ จาก fetch พลาดแค่ครั้งเดียว
-async function fetchJsonWithRetry(url: string, attempts = 3): Promise<any> {
-  let lastError: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return await r.json();
-    } catch (e) {
-      lastError = e;
-      if (i < attempts - 1) await new Promise(res => setTimeout(res, 400 * (i + 1)));
-    }
-  }
-  throw lastError;
-}
 
 const THAI_DOW_SHORT: Record<string, string> = {
   Monday: "จ.", Tuesday: "อ.", Wednesday: "พ.", Thursday: "พฤ.",
@@ -113,11 +72,13 @@ export default function Home() {
   const [regularHours, setRegularHours] = useState<HoursGroup[]>(FALLBACK_REGULAR_HOURS);
   const [content, setContent] = useState<ContentData>(emptyContentData);
   const [blinking, setBlinking] = useState(false);
+  const minaPose = getWeeklyMinaPose();
   const scrollToStatus = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     document.getElementById("status")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   useEffect(() => {
+    if (!minaPose.closed) return; // ท่านี้ไม่มีภาพหลับตา ไม่ต้องเล่นแอนิเมชันกะพริบตา
     let blinkTimeout: ReturnType<typeof setTimeout>;
     let cycleTimeout: ReturnType<typeof setTimeout>;
     let cancelled = false;
@@ -191,13 +152,13 @@ export default function Home() {
   return <main className="v2">
     <header className="v2-nav">
       <a href="#home" className="v2-brand"><img src="/logo.jpg" alt="โลโก้คลินิกบ้านเด็ก"/><span>คลินิกบ้านเด็ก<small>BAANDEK CLINIC</small></span></a>
-      <nav><a href="#services">บริการ</a><a href="#advisor">วัคซีน</a><a href="#knowledge">ความรู้</a><a href="#contact">ติดต่อ</a></nav>
+      <nav><a href="#services">บริการ</a><a href="#advisor">วัคซีน</a><a href="/about">สถานที่</a><a href="#knowledge">ความรู้</a><a href="#contact">ติดต่อ</a></nav>
       <a className="v2-call" href={`tel:${phoneRaw}`}>โทร {phoneDisplay}</a>
     </header>
 
     <section className="v2-hero" id="home">
       <div className="v2-hero-copy"><span className="v2-pill">กุมารแพทย์ • สุราษฎร์ธานี</span><h1>ดูแลทุกช่วงวัย<br/>ด้วยความเข้าใจ</h1><p>พื้นที่อุ่นใจสำหรับเด็ก ๆ และทุกครอบครัว<br/>ตั้งแต่วันแรกเกิดไปจนถึงวันที่เติบโตแข็งแรง</p><div className="v2-buttons"><a className="v2-btn solid" href="#status">ดูสถานะวันนี้</a><a className="v2-btn outline" href={messengerUrl}>สอบถามทาง Messenger</a></div></div>
-      <div className="v2-hero-mascot"><span className="v2-mascot-blob"></span><img className={`v2-mascot-img${blinking ? " is-hidden" : ""}`} src={MINA_EYES_OPEN} alt="มาสคอตมีนากำลังชี้ชวนไปยังปุ่มด้านซ้าย"/><img className={`v2-mascot-img v2-mascot-blink${blinking ? "" : " is-hidden"}`} src={MINA_EYES_CLOSED} alt="" aria-hidden="true"/><div className="v2-photo-note"><b>คลินิกบ้านเด็ก</b><small>เปิดดูแลครอบครัวมาตั้งแต่ 18 พฤษภาคม 2562</small></div></div>
+      <div className="v2-hero-mascot"><span className="v2-mascot-blob"></span><img className={`v2-mascot-img${(minaPose.closed && blinking) ? " is-hidden" : ""}`} src={minaPose.open} alt={minaPose.alt}/>{minaPose.closed && <img className={`v2-mascot-img v2-mascot-blink${blinking ? "" : " is-hidden"}`} src={minaPose.closed} alt="" aria-hidden="true"/>}<div className="v2-photo-note"><b>คลินิกบ้านเด็ก</b><small>เปิดดูแลครอบครัวมาตั้งแต่ 18 พฤษภาคม 2562</small></div></div>
     </section>
 
     <section className="v2-status" id="status">
