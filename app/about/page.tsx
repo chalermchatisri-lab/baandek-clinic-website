@@ -83,6 +83,7 @@ export default function AboutPage() {
   const phoneDisplay = formatPhone(link("PHONE"));
   const fbHandle = link("FACEBOOK_PAGE");
   const messengerUrl = `https://m.me/${fbHandle}`;
+  const lineOaUrl = `https://line.me/R/ti/p/${link("LINE_OA")}`;
 
   return <main className="v2">
     <header className="v2-nav">
@@ -102,13 +103,14 @@ export default function AboutPage() {
 
     <section className="v2-zone-section">
       <LocationGallery zones={ZONES} />
+      <p className="v2-zone-disclaimer">*ภาพประกอบเพื่อการนำเสนอ แสดงถึงบรรยากาศและบริการจริงที่คลินิกให้บริการ</p>
     </section>
 
     <section className="v2-about-cta">
       <h2>พร้อมพาน้องมาพบเราหรือยัง?</h2>
       <p>จองคิวล่วงหน้าหรือทักมาสอบถามได้ทุกช่องทาง</p>
       <div className="v2-buttons">
-        <a className="v2-btn solid" href="/#status">จองคิว</a>
+        <a className="v2-btn solid" href={lineOaUrl} target="_blank" rel="noreferrer">จองคิว</a>
         <a className="v2-btn outline" href={messengerUrl}>สอบถามทาง Messenger</a>
       </div>
     </section>
